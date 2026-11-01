@@ -1,0 +1,78 @@
+server:
+  port: ${PORT:${SERVER_PORT:8082}}
+
+management:
+  tracing:
+    sampling:
+      probability: 1.0
+
+spring:
+  config:
+    import: optional:file:.env[.properties],optional:file:../.env[.properties]
+  zipkin:
+    base-url: ${MANAGEMENT_ZIPKIN_TRACING_ENDPOINT:http://localhost:9411}
+  application:
+    name: catalog-service
+
+  # Cấu hình kết nối PostgreSQL (Aiven)
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://pg-mochuong-trietleminh7979-se181979.i.aivencloud.com:15995/defaultdb?sslmode=require}
+    username: ${SPRING_DATASOURCE_USERNAME:avnadmin}
+    password: ${SPRING_DATASOURCE_PASSWORD:}
+    driver-class-name: ${SPRING_DATASOURCE_DRIVER:org.postgresql.Driver}
+    hikari:
+      maximum-pool-size: ${HIKARI_MAX_POOL_SIZE:4}
+      minimum-idle: 2
+      idle-timeout: 30000
+      max-lifetime: 1800000
+      connection-timeout: 20000
+
+  # Cấu hình JPA & Hibernate
+  jpa:
+    hibernate:
+      ddl-auto: ${SPRING_JPA_HIBERNATE_DDL_AUTO:update}
+    show-sql: true
+    properties:
+      hibernate.dialect: ${SPRING_JPA_DATABASE_PLATFORM:org.hibernate.dialect.PostgreSQLDialect}
+
+  flyway:
+    enabled: ${SPRING_FLYWAY_ENABLED:false}
+
+  # Cấu hình Redis
+  data:
+    redis:
+      host: ${SPRING_DATA_REDIS_HOST:localhost}
+      port: ${SPRING_DATA_REDIS_PORT:6379}
+
+  # Cấu hình Kafka Consumer
+  kafka:
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: catalog-group-v2
+      auto-offset-reset: latest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
+        spring.json.value.default.type: java.util.HashMap
+        spring.json.use.type.headers: false
+    listener:
+      observation-enabled: true
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE:http://localhost:8761/eureka/}
+
+jwt:
+  secret: ${JWT_SECRET:4b6a4a6e744e6b726466384a51356f5a774652417757367838536b5952674261}
+  expiration: ${JWT_EXPIRATION:900000}
+  refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800000}
+
+gemini:
+  api-key: ${GEMINI_API_KEY:}
+  model: ${GEMINI_MODEL:gemini-3.5-flash}
+  url: ${GEMINI_URL:https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={apiKey}}
+
+cloudinary:
+  url: ${CLOUDINARY_URL:cloudinary://123456789012345:abcdefghijklmnopqrstuvwxyz1@mochuong}

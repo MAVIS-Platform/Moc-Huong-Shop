@@ -1,0 +1,81 @@
+package com.minhtriet.se3979.catalogservice.security;
+
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
+import org.springframework.lang.NonNull;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
+import org.springframework.stereotype.Component;
+import org.springframework.web.filter.OncePerRequestFilter;
+
+import java.io.IOException;
+import java.util.Collections;
+
+@Component
+@RequiredArgsConstructor
+public class JwtAuthFilter extends OncePerRequestFilter {
+
+    private final JwtUtil jwtUtil;
+
+    @Override
+    protected void doFilterInternal(
+            @NonNull HttpServletRequest request,
+            @NonNull HttpServletResponse response,
+            @NonNull FilterChain filterChain
+    ) throws ServletException, IOException {
+
+        // Nếu đã được authenticate ROLE_SYSTEM từ InternalAuthFilter, giữ nguyên và đi tiếp
+        if (SecurityContextHolder.getContext().getAuthentication() != null &&
+                SecurityContextHolder.getContext().getAuthentication().getAuthorities().stream()
+                        .anyMatch(a -> a.getAuthority().equals("ROLE_SYSTEM"))) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        final String authHeader = request.getHeader("Authorization");
+
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        try {
+            String jwt = authHeader.substring(7);
+            if (jwtUtil.isTokenValid(jwt)) {
+                String userEmail = jwtUtil.extractEmail(jwt);
+
+                if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                    // Trích xuất Role từ token (VD: CUSTOMER, STAFF, ADMIN)
+                    String role = jwtUtil.extractRole(jwt);
+                    Long userId = jwtUtil.extractUserId(jwt);
+                    String fullName = jwtUtil.extractFullName(jwt);
+
+                    AuthenticatedUser authenticatedUser = AuthenticatedUser.builder()
+                            .userId(userId)
+                            .email(userEmail)
+                            .role(role)
+                            .fullName(fullName)
+                            .build();
+
+                    // Cấp quyền đi tiếp dựa trên thông tin có sẵn trong Token
+                    UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                            authenticatedUser,
+                            null,
+                            role != null ? Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + role.toUpperCase())) : Collections.emptyList()
+                    );
+                    authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                    SecurityContextHolder.getContext().setAuthentication(authToken);
+                }
+            }
+        } catch (Exception e) {
+            logger.error("Token không hợp lệ hoặc đã hết hạn: " + e.getMessage());
+        }
+
+        filterChain.doFilter(request, response);
+    }
+}
