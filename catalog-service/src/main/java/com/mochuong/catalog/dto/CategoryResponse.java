@@ -1,0 +1,9 @@
+package com.mochuong.catalog.dto;
+
+public record CategoryResponse(
+        Long id,
+        String code,
+        String name,
+        String description
+) {
+}
