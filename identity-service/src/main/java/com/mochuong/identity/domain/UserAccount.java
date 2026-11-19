@@ -1,0 +1,74 @@
+package com.mochuong.identity.domain;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import java.time.Instant;
+import java.util.UUID;
+
+@Entity
+@Table(name = "users")
+public class UserAccount {
+
+    @Id
+    private UUID id;
+
+    @Column(nullable = false, unique = true, length = 255)
+    private String email;
+
+    @Column(name = "password_hash", nullable = false, length = 255)
+    private String passwordHash;
+
+    @Column(name = "full_name", nullable = false, length = 150)
+    private String fullName;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private UserRole role;
+
+    @Column(name = "created_at", nullable = false)
+    private Instant createdAt;
+
+    protected UserAccount() {
+    }
+
+    public UserAccount(UUID id, String email, String passwordHash, String fullName, UserRole role, Instant createdAt) {
+        this.id = id;
+        this.email = email;
+        this.passwordHash = passwordHash;
+        this.fullName = fullName;
+        this.role = role;
+        this.createdAt = createdAt;
+    }
+
+    public static UserAccount createCustomer(String email, String passwordHash, String fullName) {
+        return new UserAccount(UUID.randomUUID(), email.trim().toLowerCase(), passwordHash, fullName.trim(), UserRole.CUSTOMER, Instant.now());
+    }
+
+    public UUID getId() {
+        return id;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public String getPasswordHash() {
+        return passwordHash;
+    }
+
+    public String getFullName() {
+        return fullName;
+    }
+
+    public UserRole getRole() {
+        return role;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+}
